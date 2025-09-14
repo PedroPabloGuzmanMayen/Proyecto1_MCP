@@ -132,7 +132,9 @@ class Client:
 
             # Accumulates texts and process tools in order
             tool_uses = []
+            assistant_msg_content = []
             for block in resp.content:
+                assistant_msg_content.append(block)
                 if block.type == "text":
                     final_text_chunks.append(block.text)
                 elif block.type == "tool_use":
@@ -147,13 +149,7 @@ class Client:
                 # If we don't have more tool calls, we finsihN
                 break
 
-            # Execute each tool in order and return tool_result to claude
-            assistant_msg_content = []
-            for block in resp.content:
-                # Add assistant content to history
-                assistant_msg_content.append(block)
-
-
+            
             # Execute tool_uses and return reslts
             tool_results_content = []
             for tu in tool_uses:

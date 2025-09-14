@@ -138,6 +138,11 @@ class Client:
                 elif block.type == "tool_use":
                     tool_uses.append(block)
 
+            self.messages.append({
+                "role": "assistant",
+                "content": assistant_msg_content
+            })
+
             if not tool_uses:
                 # If we don't have more tool calls, we finsihN
                 break
@@ -148,10 +153,6 @@ class Client:
                 # Add assistant content to history
                 assistant_msg_content.append(block)
 
-            self.messages.append({
-                "role": "assistant",
-                "content": assistant_msg_content
-            })
 
             # Execute tool_uses and return reslts
             tool_results_content = []

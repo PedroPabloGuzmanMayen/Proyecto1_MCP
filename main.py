@@ -59,7 +59,7 @@ class Client:
             elif stype in ("http", "streamable_http", "url"):
                 url = entry["url"]
                 headers = entry.get("headers", None)
-                # Devuelve (read, write, _session_info)
+                # Returns read, write and session info
                 read, write, _ = await self.exit_stack.enter_async_context(
                     streamablehttp_client(url=url, headers=headers)
                 )
@@ -80,7 +80,7 @@ class Client:
               [qualified for qualified in self.tool_index.keys()])
 
     async def _refresh_tool_index(self):
-        """Reconstruye el índice de tools combinando todos los servers."""
+        """Rebuilds tool index using all servers"""
         self.tool_index.clear()
         for server_name, session in self.sessions.items():
             resp = await session.list_tools()
@@ -95,23 +95,20 @@ class Client:
 
     @staticmethod
     def _qualify(server: str, tool: str) -> str:
-        """Genera un nombre apto para Anthropic (evita caracteres raros)."""
-        # Antropic suele permitir [a-zA-Z0-9_-]; usamos "__" para separar
+        """Generates a correct name for Anthropic"""
         return f"{server}__{tool}"
 
     def _route_tool(self, qualified: str) -> Tuple[ClientSession, str]:
-        """Resuelve la sesión y el nombre real de tool a partir del nombre calificado."""
+        """Resolves session and real name using a qualified name"""
         if qualified not in self.tool_index:
-            raise RuntimeError(f"Tool '{qualified}' no está en el índice.")
+            raise RuntimeError(f"Tool '{qualified}' not in index")
         server_name, tool_name, _, _ = self.tool_index[qualified]
         return self.sessions[server_name], tool_name
 
-    # ----------------------
-    # Bucle de consulta
-    # ----------------------
+    #Query
     async def process_query(self, query: str) -> str:
-        """Envía la consulta a Claude y resuelve tool_calls en cascada."""
-        # Preparamos el set de tools para Anthropic (todas las calzadas)
+        """Sends a query to claude"""
+        # Prepare all tools
         available_tools = []
         for qualified, (_srv, _tool, schema, desc) in self.tool_index.items():
             available_tools.append({
@@ -125,13 +122,13 @@ class Client:
 
         while True:
             resp = self.anthropic.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=1000,
                 messages=messages,
                 tools=available_tools
             )
 
-            # Acumula textos y procesa herramientas en orden
+            # Accumulates texts and process tools in order
             tool_uses = []
             for block in resp.content:
                 if block.type == "text":
@@ -140,13 +137,13 @@ class Client:
                     tool_uses.append(block)
 
             if not tool_uses:
-                # No hay más llamadas a tools → terminamos
+                # If we don't have more tool calls, we finsihN
                 break
 
-            # Ejecutar cada tool en orden y devolver tool_result a Claude
+            # Execute each tool in order and return tool_result to claude
             assistant_msg_content = []
             for block in resp.content:
-                # Volvemos a añadir todo el contenido del assistant al historial
+                # Add assistant content to history
                 assistant_msg_content.append(block)
 
             messages.append({
@@ -154,7 +151,7 @@ class Client:
                 "content": assistant_msg_content
             })
 
-            # Ejecutamos tool_uses y devolvemos resultados
+            # Execute tool_uses and return reslts
             tool_results_content = []
             for tu in tool_uses:
                 qualified_name = tu.name
@@ -167,19 +164,15 @@ class Client:
                     "type": "tool_result",
                     "tool_use_id": tu.id,
                     "content": result.content,
-                    # Si tu server ya devuelve structuredContent, puedes pasarlo también:
-                    # "is_error": False
                 })
 
-                # (Opcional) Log: útil para depurar
-                final_text_chunks.append(f"[{qualified_name} ejecutada con args {args}]")
+                final_text_chunks.append(f"[{qualified_name} executed with {args}]")
 
             messages.append({
                 "role": "user",
                 "content": tool_results_content
             })
 
-            # Loop continúa: Claude verá los tool_result y decidirá si responder o pedir más tools
 
         return "\n".join(final_text_chunks)
 
@@ -202,7 +195,7 @@ class Client:
 async def main():
     import sys
     if len(sys.argv) < 2:
-        print("Uso: python client.py servers.json")
+        print("Use: python client.py servers.json")
         raise SystemExit(2)
 
     client = Client()

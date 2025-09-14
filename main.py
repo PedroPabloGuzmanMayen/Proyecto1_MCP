@@ -30,8 +30,10 @@ class Client:
         # We also store transports to keep them alive in the exit_stack
         self._transports: List[Any] = []
 
-        # Índice de tool calificada -> (server_name, tool_name, schema, description)
+        # Index of quealified tool -> (server_name, tool_name, schema, description)
         self.tool_index: Dict[str, Tuple[str, str, Any, Optional[str]]] = {}
+
+        self.messages = [] #To keep context along all conversation
 
     #Server connection
     async def connect_from_json(self, json_path: str):
@@ -117,14 +119,14 @@ class Client:
                 "input_schema": schema
             })
 
-        messages: List[dict] = [{"role": "user", "content": query}]
+        self.messages.append({"role": "user", "content": query})
         final_text_chunks: List[str] = []
 
         while True:
             resp = self.anthropic.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=1000,
-                messages=messages,
+                messages=self.messages,
                 tools=available_tools
             )
 
@@ -146,7 +148,7 @@ class Client:
                 # Add assistant content to history
                 assistant_msg_content.append(block)
 
-            messages.append({
+            self.messages.append({
                 "role": "assistant",
                 "content": assistant_msg_content
             })
@@ -168,7 +170,7 @@ class Client:
 
                 final_text_chunks.append(f"[{qualified_name} executed with {args}]")
 
-            messages.append({
+            self.messages.append({
                 "role": "user",
                 "content": tool_results_content
             })
@@ -178,7 +180,7 @@ class Client:
 
     async def chat_loop(self):
         print("\nMCP Client Started!")
-        print("Escribe tu query o 'quit' para salir.")
+        print("Write a query or quit to exit!")
         while True:
             try:
                 q = input("\nQuery: ").strip()

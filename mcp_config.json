@@ -7,9 +7,27 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/Users/username/Desktop",
-        "/path/to/other/allowed/dir"
+        "/home/ppguz"
       ]
+    },
+    {
+      "name": "github",
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env":{
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "GITHUBTOKEN"
+      }
+
+    },
+    {
+      "name": "spotify",
+      "type": "stdio",
+      "command": "node",
+      "args":["../MCP_server/dist/main.js"]
     }
   ]
 }

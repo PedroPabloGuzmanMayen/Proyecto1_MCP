@@ -6,8 +6,9 @@ En este proyecto se hace la implementación del protocolo MCP. Para ello, se usa
 - Un servidor MCP que corre de forma local en la máquina del usuario
 - Un servidor MCP que corre de forma remota en un servicio de la nube
 
-## Documentación y funcionamiento de los servidores MCP
+---
 
+## Documentación y funcionamiento de los servidores MCP
 
 ## Servidor local
 
@@ -470,3 +471,85 @@ formatter = logging.Formatter(
 - Logging detallado para debugging y monitoreo
 - Limpieza automática de recursos al finalizar
 - Compatible con servidores locales y remotos
+
+---
+
+## Análisis con wireshark
+
+Ahora se explica como fue la interacción entre el chatbot y el servidor MCP remoto. Antes que nada, se debe aclarar que para interactuar con el servidor remoto el cuál corre en el servicio de Google Cloud RUn se hizo un proxy en el puerto 8080 de la máquina local, este servidor proxy redirige todas las peticiones que se le hagan al servidor de Gooogle Cloud y devuelve las respuestas de este a el usuario que realizó la petición. 
+
+### Threeway handshake con JSON RCP
+
+Lo primero que se identificó fue el threeway handshake entre el cliente que corre en el puerto 49020 y el servidor que es el proxy que corre en el puerto 8080, esto se puede identificar fácilmente pues en los 3 mensajes iniciales en la captura de wireshark se observa que el puerto 49020 eenvía al servidor un mensaje con la flag SYN, el server responde que recibió el mensaje y que si quiere conectarse con el cliente, finalmente el cliente responde de que recibió la respuesta del server, ambos mantienen los valores correspondientes de ACK y SEQ. Luego se observa que el cliente hizo un JSON HTTP al cliente, al analizarlo de detectó que este JSON contenía el campo "client_info", esto nos indica que en este mensaje el cliente envió e JSON RCP 2.0 necesario para descubrir las capacidades del servidor MCP al cuál se quería conectar, se observa que el servidor respondió con un OK y envió la respuesta del servidor en la cuál se indican las herramientas disponibles en el servidor, el mensaje no se puede observar debido a que el servidor usa HTTPS y la información esta cifrada. Después de este mensaje inicial se observa que el cliente cerró la conexión pues envió la bandera FIN y el servidor acepto. 
+
+![Client requests tools](images/Three_way_handshake.png)
+
+Después de que el cliente recibiera la respuesta se cerró la conexión pero luego vuelve a abrir una nueva conexión, esta vez usando un puerto diferente. Esta vez el cliente envió un JSON con el campo "method" con el valor "initialize", esto indica que el cliente recibió la información sobre las capacidades que tiene el servidor MCP, verificó que eran compatibles y entonces inicializó la conexión
+
+![Client initializes connection](images/Initialize.png)
+
+
+### Tool discovery
+
+Después de que el cliente y el servidor descubrieran sus capacidades e inicializaran conexión el cliente volvió a abrir otra conexión y esta vez solicitó las tools disponibles del MCP, esto pudo identificarse fácilmente pues el mensaje contenía en el campo method el valor: "tool_list", esto se usa en el protocolo MCP para pedir la lista de herramientas al servidor. Al final se observa que el servidor le respondió correctamente y envió la lista de las herramientas disponibles.
+
+![Client requests tools](images/Tool_list.png)
+
+
+### Uso de una tool
+
+Finalmente, durante el transcurso de la captura se realizó una petición de información sobre un pokemón llamado Vaporeon al servidor MCP, se observó un mensaje en donde el campo method contenia el string "tool_call" la cuál indica que el cliente llamó a una tool del servidor para realizar una operación. Otra observación interesente es que el mensaje contenía el campo arguments y ahí el cliente puso el nombre del pokemón del cuál quería información. Luego se observa la respueesta del servidor con OK indicando que devolvió el contenido de forma correcta. 
+
+![Client requests tools](images/tool_call.png)
+
+---
+
+## Papel de las capas del modelo OSI en el intercambio de mensajes
+
+- **Capa de enlace**: encapsula los mensajes en datagramas y determina cuál es la siguiente dirección MAC a la cuál hay que enviarle el mensaje. 
+- **Capa de red**: halla la ruta más corta entre emisor y receptor, en este caso no hay mucha intervención de este capa pues el cliente siempre envía los mensajes al servidor proxy el cuál está ubicado en la misma máquina.
+- **Capa de transporte**: usando el protocolo TCP asegura que los mensajes lleguen el destino correcto y se puede identificar correctamente cuál puerto del cliente envió cada mensaje. 
+- **Capa de aplicación**: convierte el conteido de los inputs del usuario o las peticiones del cliente mcp al formato JSON RPC 2.0.  
+
+--- 
+
+## Dificultades
+
+Durante la realización de este proyecto la dificultad más grande que se identificó fue el uso correcto de la API de Spotify para la creación de playlists, esto debido a que en Spotify cada canción, artista o álbum tiene un ID único que lo identifica y la única forma de insertar nuevass canciones a una playlist es haciendo uso de estos IDS los cuales son difíciles de obtener pues hay ocasiones en las que un mismo artista tiene varias canciones con el mismo nombre pero en diferentes álbumes, esto limitó la capacidad del LLM para crear playlists de muchas canciones pues debía buscar el ID de cada una de las canciones que el usuario quería agregar a su playlist. 
+
+---
+
+## Lecciones aprendidas
+
+- Desarrollo de servidores MCP
+- Entendimiento del protocolo MCP
+- Autenticación OAuth 2.0
+
+---
+
+## Conclusiones
+
+- Los servidores MCP son una herramienta poderosa que pueden ser de gran ayuda para realizar tareas de forma eficiente y explotar al máximo las capacidades de los modelos de lenguaje natural
+- Se implementó con éxito un servidor MCP que permite a un LLM hacer operaciones sobre la cuenta de Spotify de un usuario. 
+- Se identificaron los mensajes y reglas del protocolo MCP para establecer conexiones entre un cliente y un servidor. 
+
+---
+
+## Comentario
+
+En lo personal este proyecto me gustó bastante pues fue un tema del que no sabía y fue bastante interesante de implementar. Otra cosa que me gustó fue que el proeycto fue bastante libre y eso dio paso a que pudiera aprnder sobre más temas como la autenticación o aprender typescript. 
+
+---
+
+## Referencias
+
+- Marcelmarais. (s. f.). GitHub - marcelmarais/spotify-mcp-server. GitHub. https://github.com/marcelmarais/spotify-mcp-server
+- midudev. (2025, 17 abril). ¡Aprende MCP! Para principiantes + Crear nuestro primer MCP DESDE CERO [Vídeo]. YouTube. https://www.youtube.com/watch?v=wnHczxwukYY
+- Architecture overview - Model Context Protocol. (s. f.). Model Context Protocol. https://modelcontextprotocol.io/docs/learn/architecture
+- RFC 7636: Proof Key for Code Exchange by OAuth Public Clients. (s. f.). IETF Datatracker. https://datatracker.ietf.org/doc/html/rfc7636#section-4.1
+- Web API | Spotify for Developers. (s. f.). https://developer.spotify.com/documentation/web-api
+
+
+
+
+

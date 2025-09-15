@@ -10,3 +10,8 @@ dependencies = [
     "dotenv>=0.9.9",
     "mcp>=1.14.0",
 ]
+
+[tool.uv.workspace]
+members = [
+    "pokemon_server",
+]

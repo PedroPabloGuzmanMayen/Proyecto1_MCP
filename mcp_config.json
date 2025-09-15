@@ -19,7 +19,7 @@
         "@modelcontextprotocol/server-github"
       ],
       "env":{
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "GITHUBTOKEN"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "TOKEN"
       }
 
     },
@@ -28,6 +28,11 @@
       "type": "stdio",
       "command": "node",
       "args":["../MCP_server/dist/main.js"]
+    },
+    {
+      "name": "pokemon",
+      "type": "http",
+      "url": "http://localhost:8080/mcp"
     }
   ]
 }

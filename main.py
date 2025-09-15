@@ -7,10 +7,27 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client 
 
+import logging
+
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger("MCPClient")
+logger.setLevel(logging.INFO)
+
+#Save logs on file
+file_handler = logging.FileHandler("mcp_client.log", encoding="utf-8")
+file_handler.setLevel(logging.INFO)
+
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+file_handler.setFormatter(formatter)
+
+#Log just in file, not in console. 
+logger.addHandler(file_handler)
 
 
 class Client:
@@ -22,6 +39,7 @@ class Client:
       - Routes each tool_use to the corresponding server session
     """
     def __init__(self):
+        
         self.exit_stack = AsyncExitStack()
         self.anthropic = Anthropic()
 
@@ -37,6 +55,7 @@ class Client:
 
     #Server connection
     async def connect_from_json(self, json_path: str):
+        logger.info(f"Reading MCP servers from {json_path}")
         """Connects all servers defined in the mcp_config json file"""
         with open(json_path, "r", encoding="utf-8") as f:
             config = json.load(f)
@@ -48,6 +67,7 @@ class Client:
         for entry in servers:
             name = entry["name"]
             stype = entry["type"]
+            logger.info(f"Connecting to server '{name}' ({stype})")
 
             if stype == "stdio":
                 params = StdioServerParameters(
@@ -74,12 +94,11 @@ class Client:
             self._transports.append((name, read, write))
             await session.initialize()
             self.sessions[name] = session
+            logger.info(f"Connected to server '{name}'")
 
         # Build tools catalog
         await self._refresh_tool_index()
-        print("\nConnected to server:", list(self.sessions.keys()))
-        print("Available tools:",
-              [qualified for qualified in self.tool_index.keys()])
+        logger.info(f"Available tools: {list(self.tool_index.keys())}")
 
     async def _refresh_tool_index(self):
         """Rebuilds tool index using all servers"""
@@ -94,6 +113,7 @@ class Client:
                     tool.inputSchema,
                     tool.description,
                 )
+                logger.info(f"Registered tool '{qualified}'")
 
     @staticmethod
     def _qualify(server: str, tool: str) -> str:
@@ -109,6 +129,7 @@ class Client:
 
     #Query
     async def process_query(self, query: str) -> str:
+        logger.info(f"New user query: {query}")
         """Sends a query to claude"""
         # Prepare all tools
         available_tools = []
@@ -136,8 +157,10 @@ class Client:
             for block in resp.content:
                 assistant_msg_content.append(block)
                 if block.type == "text":
+                    logger.info(f"Claude responded with text: {block}...")
                     final_text_chunks.append(block.text)
                 elif block.type == "tool_use":
+                    logger.info(f"Claude responded with text: {block}...")
                     tool_uses.append(block)
 
             self.messages.append({
@@ -158,7 +181,7 @@ class Client:
 
                 session, real_tool = self._route_tool(qualified_name)
                 result = await session.call_tool(real_tool, arguments=args)
-
+                logger.info(f"Claude responded with text: {block}...")
                 tool_results_content.append({
                     "type": "tool_result",
                     "tool_use_id": tu.id,
@@ -176,6 +199,7 @@ class Client:
         return "\n".join(final_text_chunks)
 
     async def chat_loop(self):
+        logger.info("MCP Client Started!")
         print("\nMCP Client Started!")
         print("Write a query or quit to exit!")
         while True:
@@ -188,6 +212,7 @@ class Client:
                 print(f"\nError: {e}")
 
     async def cleanup(self):
+        logger.info("Cleaning up resources...")
         await self.exit_stack.aclose()
 
 

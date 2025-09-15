@@ -12,7 +12,7 @@ En este proyecto se hace la implementación del protocolo MCP. Para ello, se usa
 
 ## Servidor local
 
-Este servidor utiliza la API de Spotify para coenctarse a la cueta del usuario y realizar operaciones como obtener las canciones o artistas más escuchados por el usuario en cierto periodo de tiempo, también es capaz de analizar las canciones guardadas por el usuario y crear playlists con recomendaciones en base a los gustos del usuario. Las intrucciones de instalación pueden encontrarse en: 
+Este servidor utiliza la API de Spotify para coenctarse a la cueta del usuario y realizar operaciones como obtener las canciones o artistas más escuchados por el usuario en cierto periodo de tiempo, también es capaz de analizar las canciones guardadas por el usuario y crear playlists con recomendaciones en base a los gustos del usuario. Las intrucciones de instalación pueden encontrarse en: [Mcp server](https://github.com/PedroPabloGuzmanMayen/MCP_server)
 
 ### Documentación
 
@@ -204,7 +204,7 @@ Este servidor utiliza la API de Spotify para coenctarse a la cueta del usuario y
 
 ## Servidor en la nube
 
-Este servidor utiliza la API de PokéAPI para obtener información detallada de Pokémon. Permite consultar datos como estadísticas, tipos, habilidades y características físicas de cualquier Pokémon. El servidor está diseñado para ejecutarse en Google Cloud Run con soporte para múltiples tipos de transporte HTTP.
+Este servidor utiliza la API de PokéAPI para obtener información detallada de Pokémon. Permite consultar datos como estadísticas, tipos, habilidades y características físicas de cualquier Pokémon. El servidor está diseñado para ejecutarse en Google Cloud Run con soporte para múltiples tipos de transporte HTTP. Las instrucciones de instalación pueden encontrarse aquí: [Intructions](pokemon_server/Instructions.md)
 
 ### Documentación
 
@@ -296,7 +296,7 @@ Este servidor utiliza la API de PokéAPI para obtener información detallada de 
 
 ## Cliente MCP Multi-Servidor
 
-Este cliente permite conectarse simultáneamente a múltiples servidores MCP (Model Context Protocol) y exponer todas sus herramientas a Claude de manera unificada. Actúa como un proxy inteligente que enruta las llamadas a herramientas al servidor correspondiente, permitiendo conversaciones complejas que utilizan recursos de diferentes servidores.
+Este cliente permite conectarse simultáneamente a múltiples servidores MCP (Model Context Protocol) y exponer todas sus herramientas a Claude de manera unificada. Actúa como un proxy inteligente que enruta las llamadas a herramientas al servidor correspondiente, permitiendo conversaciones complejas que utilizan recursos de diferentes servidores. Las intrucciones de instalación se encuentran aquí: [Intructions](./instructions.md)
 
 ### Documentación
 
